@@ -6,11 +6,21 @@ from selenium.webdriver.common.keys import Keys
 from salesforce.salesforce_api import SalesForceSession
 from config import client_id, client_secret, username, password
 import asyncio
-
+import requests
+from salesforce.models import SFTempAccount
 
 #driver = webdriver.Firefox()
 
 def main():
+    '''
+    headers = {'Authorization' : 'Bearer 00D5A0000015x35!AQsAQDq5G8wskgL2BnsvjB2vYglTuSZGT.jKg.Gifmu_OOXwzHxBZphQrv2Vul8RhjtQ.6UtWaK300hOrsJvGKocBnG9Pv1S'}
+    data = {'operation': 'query',
+            'query': 'SELECT Name__c from Tempaccount__c'}
+    url = 'https://bowtiemedicalcrm.my.salesforce.com/services/data/v49.0/jobs/query'
+    r = requests.get(url, data = data, headers = headers)
+    print(r)
+    print(r.json())
+    '''
     loop = asyncio.get_event_loop()
     loop.run_until_complete(get_sf_information())
     print('after running')
@@ -22,8 +32,11 @@ def main():
 async def get_sf_information():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
-    job_id = await sf_lib.create_job("Account", "insert")
-    print(job_id)
+    tempaccounts = await sf_lib.get_all_objects_of_type(SFTempAccount)
+    for tempaccount in tempaccounts:
+        print(tempaccount)
+    #job_id = await sf_lib.create_job("Account", "insert")
+    #print(job_id)
 
 
 

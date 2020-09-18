@@ -12,15 +12,6 @@ from salesforce.models import SFTempAccount, SFAccount
 #driver = webdriver.Firefox()
 
 def main():
-    '''
-    headers = {'Authorization' : 'Bearer 00D5A0000015x35!AQsAQDq5G8wskgL2BnsvjB2vYglTuSZGT.jKg.Gifmu_OOXwzHxBZphQrv2Vul8RhjtQ.6UtWaK300hOrsJvGKocBnG9Pv1S'}
-    data = {'operation': 'query',
-            'query': 'SELECT Name__c from Tempaccount__c'}
-    url = 'https://bowtiemedicalcrm.my.salesforce.com/services/data/v49.0/jobs/query'
-    r = requests.get(url, data = data, headers = headers)
-    print(r)
-    print(r.json())
-    '''
     loop = asyncio.get_event_loop()
     loop.run_until_complete(get_sf_information())
     print('after running')
@@ -32,11 +23,13 @@ def main():
 async def get_sf_information():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
-    '''
-    tempaccounts = await sf_lib.get_all_objects_of_type(SFTempAccount)
-    for tempaccount in tempaccounts:
-        print(tempaccount)
-    '''
+
+    tempaccounts = await sf_lib.get_all_objects_of_type(SFAccount)
+    print(len(tempaccounts))
+
+    #for tempaccount in tempaccounts:
+    #   print(tempaccount)
+
     '''
     new_tempaccounts = []
     x = SFTempAccount()
@@ -44,13 +37,13 @@ async def get_sf_information():
     new_tempaccounts.append(x)
     await sf_lib.perform_bulk_upsert(new_tempaccounts)
     '''
-
+    '''
     new_accounts = []
     y = SFAccount()
     y.Name = "Fu, Eric"
     new_accounts.append(y)
     await sf_lib.perform_bulk_upsert(new_accounts)
-    
+    '''
     
     await sf_lib.close_session()
 

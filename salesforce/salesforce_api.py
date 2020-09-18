@@ -1,4 +1,4 @@
-'''Wrapper for the Salesforce API'''
+'''Async Wrapper for the Salesforce API'''
 import aiohttp
 import asyncio
 import requests
@@ -9,6 +9,12 @@ class SalesForceSession():
 
     def __init__(self, client_id, client_secret, username, password):
         """
+        Args:
+            client_id (str): the client id associated with application
+            client_secret (str): the client secret associated with an application
+            username (str): username of the user that the app is imitating
+            password (str): password of the user the app is imiatating. The security token should be appended to the end
+
         Attributes:
             session (aiohttp.ClientSession) : client session used for all http requests
             auth_params (dict): authentication parameters used for oauth flow

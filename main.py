@@ -4,10 +4,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from salesforce.salesforce_api import SalesForceSession
-from config import client_id, client_secret, username, password
+from config import client_id, client_secret, username, password, charm_password, charm_username
 import asyncio
 import requests
-from salesforce.models import SFTempAccount
+from salesforce.models import SFTempAccount, SFAccount
 
 #driver = webdriver.Firefox()
 
@@ -32,14 +32,26 @@ def main():
 async def get_sf_information():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
+    '''
     tempaccounts = await sf_lib.get_all_objects_of_type(SFTempAccount)
     for tempaccount in tempaccounts:
         print(tempaccount)
-    #job_id = await sf_lib.create_job("Account", "insert")
-    #print(job_id)
+    '''
+    '''
+    new_tempaccounts = []
+    x = SFTempAccount()
+    x.Name__c = "Fu, Eric"
+    new_tempaccounts.append(x)
+    await sf_lib.perform_bulk_upsert(new_tempaccounts)
+    '''
 
-
-
+    new_accounts = []
+    y = SFAccount()
+    y.Name = "Fu, Eric"
+    new_accounts.append(y)
+    await sf_lib.perform_bulk_upsert(new_accounts)
+    
+    
     await sf_lib.close_session()
 
 
@@ -47,13 +59,13 @@ def login():
     driver.get('https://ehr2.charmtracker.com/')
 
     email = driver.find_element_by_id('login_id')
-    email.send_keys('kbuckner@bowtiemedical.com')
+    email.send_keys(charm_username)
     
     next_button = driver.find_element_by_id('nextbtn')
     next_button.click()
 
     password = driver.find_element_by_id('password')
-    password.send_keys('Suzanne11')
+    password.send_keys(charm_password)
 
     #sometimes it is too fast and doesn't click the next_button. Since they reuse the same button.
     WebDriverWait(driver,5).until(EC.element_to_be_clickable((By.ID, 'nextbtn')))

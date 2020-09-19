@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from config import (charm_password, charm_username, client_id, client_secret,
                     password, username)
-from salesforce.models import SFTempAccount, SFTempContact, CharmPatient
+from salesforce.models import SFTempAccount, SFTempContact, CharmPatient, SFAccount
 from salesforce.salesforce_api import SalesForceSession
 
 driver = None
@@ -33,14 +33,18 @@ def main():
 
     log_out()
 
-#TODO: Validate information, 
+#TODO: Validate information, change formats of real information: capitalization of names, dates in wrong format, gender is all capitalized 
 async def get_charm_patients():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
 
+    accounts = await sf_lib.get_all_objects_of_type(SFAccount)
+    for account in accounts:
+        print(account)
+
     print('getting tempaccounts')
     tempaccounts = await sf_lib.get_all_objects_of_type(SFTempAccount)
-
+    
     print('getting tempcontacts')
     tempcontacts = await sf_lib.get_all_objects_of_type(SFTempContact)
     tempcontacts = [x for x in tempcontacts if x.TempAccount__c]
@@ -69,7 +73,7 @@ async def get_charm_patients():
     print(f"number new accounts: {len(charm_members)}")
 
     await sf_lib.close_session()
-    charm_members.insert(0, CharmPatient('Eric','Fu', '06-11-1998', 'Male', '4403192041', 'eric.fu@bowtiemedical.com'))
+    charm_members.insert(0, CharmPatient('Eric','Fu', '06-11-19', 'Male', '4403192041', 'eric.fu@bowtiemedical.com'))
     return charm_members
 
 

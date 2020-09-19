@@ -30,6 +30,17 @@ class SFObject(ABC):
         """Returns the API name of a salesforce object. Can be found in setup->object manager"""
         pass
 
+class SFAccount(SFObject):
+    def __init__(self):
+        super().__init__()
+        self.Name = None
+        self.Phone = None
+        self.Primary_Email__c = None
+        
+    @staticmethod
+    def get_object_type():
+        return "Account"
+
 class SFTempAccount(SFObject):
     def __init__(self):
         super().__init__()

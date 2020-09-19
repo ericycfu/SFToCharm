@@ -1,7 +1,6 @@
 '''Async Wrapper for the Salesforce API'''
 import aiohttp
 import asyncio
-import requests
 from salesforce.csvhelper import csv_to_objects, objects_to_csv, process_sf_response
 
 class SalesForceSession():

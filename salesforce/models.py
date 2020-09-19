@@ -34,23 +34,31 @@ class SFTempAccount(SFObject):
     def __init__(self):
         super().__init__()
         self.Name__c = None
+        self.Phone__c = None
+        self.Primary_Email__c = None
 
     @staticmethod
     def get_object_type():
         return "TempAccount__c"
     
-class SFAccount(SFObject):
-    def __init(self):
-        super().__init__()
-        self.Name = None
-
-    @staticmethod
-    def get_object_type():
-        return "Account"
-
 class SFTempContact(SFObject):
     def __init__(self):
         super().__init__()
         self.FirstName__c = None
+        self.LastName__c = None
+        self.BirthDate__c = None
+        self.Gender__c = None
+        self.TempAccount__c = None
 
+    @staticmethod
+    def get_object_type():
+        return "TempContact__c"
 
+class CharmPatient():
+    def __init__(self, first_name, last_name, dob, gender, phone, email):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.dob = dob
+        self.gender = gender
+        self.phone = phone
+        self.email = email

@@ -1,55 +1,76 @@
+import asyncio
+
+import requests
+import datetime
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from salesforce.salesforce_api import SalesForceSession
-from config import client_id, client_secret, username, password, charm_password, charm_username
-import asyncio
-import requests
-from salesforce.models import SFTempAccount, SFAccount
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
-#driver = webdriver.Firefox()
+from config import (charm_password, charm_username, client_id, client_secret,
+                    password, username)
+from salesforce.models import SFTempAccount, SFTempContact, CharmPatient
+from salesforce.salesforce_api import SalesForceSession
+
+driver = None
 
 def main():
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(get_sf_information())
-    print('after running')
-    #login()
-    #navigate_to_patients()
-    #add_member()
+    charm_members = loop.run_until_complete(get_charm_patients())
+    print('done grabbing member info')
+    
+    #navigate to page to add patients
+    global driver
+    driver = webdriver.Firefox()
+    login()
+    navigate_to_patients()
 
+    #do one to test it
+    charm_members = charm_members[0:1]
+    for member in charm_members:
+        add_member(member)
 
-async def get_sf_information():
+    log_out()
+
+#TODO: Validate information, 
+async def get_charm_patients():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
 
     print('getting tempaccounts')
     tempaccounts = await sf_lib.get_all_objects_of_type(SFTempAccount)
-    print(len(tempaccounts))
 
-    #for tempaccount in tempaccounts:
-    #   print(tempaccount)
+    print('getting tempcontacts')
+    tempcontacts = await sf_lib.get_all_objects_of_type(SFTempContact)
+    tempcontacts = [x for x in tempcontacts if x.TempAccount__c]
 
-    print('upserting tempaccount')
-    new_tempaccounts = []
-    x = SFTempAccount()
-    x.Name__c = "Fu, Eric"
-    new_tempaccounts.append(x)
-    saved_tempaccounts = await sf_lib.perform_bulk_upsert(new_tempaccounts)
-    for tempaccount in saved_tempaccounts:
-        print(tempaccount)
+    member_account_contact_pairs = []
+    #pair the tempaccount with main tempcontact
+    for tempaccount in tempaccounts:
+        try:
+            related_tcs = [tc for tc in tempcontacts if tc.TempAccount__c == tempaccount.Id]
+            #get primary tc. Person with same firstname, lastname and then oldest person if two people have same name
+            name_arr = tempaccount.Name__c.split(",")
+            name_arr = [x.lower().strip() for x in name_arr]
+            first_name = name_arr[1]
+            last_name = name_arr[0]
+            same_name_tcs = [tc for tc in related_tcs if tc.FirstName__c.lower() == first_name if tc.LastName__c.lower() == last_name]
+            #since all dates have same format: yyyy-mm-dd, taking min will get oldest one
+            tc = min(same_name_tcs, key = lambda x : x.BirthDate__c)
+            member_account_contact_pairs.append((tempaccount, tc))
+        except Exception as e:
+            print(f'Something wrong with tempaccount: {tempaccount}')
+            raise e
 
+    charm_members = []
+    for ta, tc in member_account_contact_pairs:
+        charm_members.append(CharmPatient(tc.FirstName__c, tc.LastName__c, tc.BirthDate__c, tc.Gender__c, ta.Phone__c, ta.Primary_Email__c))
+    print(f"number new accounts: {len(charm_members)}")
 
-    '''
-    new_accounts = []
-    y = SFAccount()
-    y.Name = "Fu, Eric"
-    new_accounts.append(y)
-    await sf_lib.perform_bulk_upsert(new_accounts)
-    '''
-    
     await sf_lib.close_session()
+    charm_members.insert(0, CharmPatient('Eric','Fu', '06-11-1998', 'Male', '4403192041', 'eric.fu@bowtiemedical.com'))
+    return charm_members
 
 
 def login():
@@ -70,7 +91,7 @@ def login():
 
 def navigate_to_patients():
     #sometimes it lags and takes a long time
-    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'BowTie Medical')))
+    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'BowTie Medical')))
     bowtie_link = driver.find_element_by_partial_link_text('BowTie Medical')
     bowtie_link.click()
 
@@ -78,41 +99,41 @@ def navigate_to_patients():
     patients_icon = driver.find_element_by_id('MEMBER_TAB_ID_1')
     patients_icon.click()
 
-def add_member():
+def add_member(member):
 
     add_patients_button = driver.find_element_by_xpath('//div[text() = \'Patient\']')
     add_patients_button.click()
 
     first_name = driver.find_element_by_id('patient_first_name')
-    first_name.send_keys('Eric')
+    first_name.send_keys(member.first_name)
 
     last_name = driver.find_element_by_id('patient_last_name')
-    last_name.send_keys('Fu')
+    last_name.send_keys(member.last_name)
 
     dob = driver.find_element_by_id('patient_dob')
-    dob.send_keys('06111998')
+    dob.send_keys(member.dob)
 
     gender_select = driver.find_element_by_id('patient_gender')
     gender_select.click()
-    gender_option = driver.find_element_by_xpath('//option[contains(text(), \'Female\')]')
+    gender_option = driver.find_element_by_xpath(f'//option[contains(text(), \'{member.gender}\')]')
     gender_option.click()
-
-    '''
-    cell = driver.find_element_by_id('patient_mobile')
-    cell.click()
-    cell.send_keys(Keys.HOME)
-    cell.send_keys("4403192041")
-    '''
-    driver.execute_script("document.getElementById('patient_mobile').value='4403192041'")
+    driver.execute_script(f"document.getElementById('patient_mobile').value='{member.phone}'")
 
     email = driver.find_element_by_id('patient_email')
-    email.send_keys('eric.fu@bowtiemedical.com')
+    email.send_keys(member.email)
 
     #submit = driver.find_element_by_xpath('//button[contains(text(), \'Add\')]')
     #submit.click()
 
 
     
+def log_out():
+    profile_pic = driver.find_element_by_id("accMemberPhoto")
+    profile_pic.click()
+
+    sign_out_button = driver.find_element_by_xpath('//button[contains(text(), \'Sign Out\')]')
+    driver.execute_script("arguments[0].click()", sign_out_button) #normal way doesn't work, even with web driver wait
+
 
     
 

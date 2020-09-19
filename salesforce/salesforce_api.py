@@ -147,7 +147,9 @@ class SalesForceSession():
             #convert returned csv back to objects -> now they contain the salesforce id in Id field
             return csv_to_objects(process_sf_response(r), object_class)
 
-
+    #TODO: implement this
+    async def perform_bulk_delete(self, objects):
+        pass
 
 
     async def create_job(self, object, operation):

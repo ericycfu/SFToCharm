@@ -2,7 +2,7 @@
 import aiohttp
 import asyncio
 import requests
-from salesforce.csvhelper import csv_to_objects, objects_to_csv
+from salesforce.csvhelper import csv_to_objects, objects_to_csv, process_sf_response
 
 class SalesForceSession():
     """Represents a connection to a specific Salesforce Instance"""
@@ -109,12 +109,10 @@ class SalesForceSession():
 
         #create csv from objects
         csv_string = objects_to_csv(objects)
-        csv_string = "Id,Name\n,\"Doe,John\""
-        with open("test.csv", "w+") as f:
-            f.write(csv_string)
 
         #create job
-        job_id = await self.create_job(objects[0].__class__ , 'upsert')
+        object_class = objects[0].__class__
+        job_id = await self.create_job(object_class, 'upsert')
 
         #upload csv data to job
         upload_url = self.instance_url + f"/services/data/v{self.api_version}/jobs/ingest/{job_id}/batches/"
@@ -136,7 +134,7 @@ class SalesForceSession():
                     await asyncio.sleep(2)
                 elif status in ['Failed', 'Aborted']:
                     #not raising exception here because we can still get data of which records were succesfully processed
-                    print("something went wrong with SF query")
+                    print("something went wrong with job")
                     await self.get_failed_job(job_id)
                     break
                 elif status == 'JobComplete':
@@ -146,7 +144,10 @@ class SalesForceSession():
         results_url = self.instance_url + f'/services/data/v{self.api_version}/jobs/ingest/{job_id}/successfulResults/'
         async with self.session.get(results_url) as response:
             r = await response.text()
-            return r
+            #convert returned csv back to objects -> now they contain the salesforce id in Id field
+            return csv_to_objects(process_sf_response(r), object_class)
+
+
 
 
     async def create_job(self, object, operation):
@@ -204,8 +205,9 @@ class SalesForceSession():
         url = self.instance_url + f"/services/data/v{self.api_version}/jobs/ingest/{job_id}"
         body = {"state": "UploadComplete"}
         async with self.session.patch(url, json = body) as response:
-            r = await response.json()
-            print(r)
+            pass
+            #r = await response.json()
+            #print(r)
 
     async def delete_job(self, job_id):
         """Deletes a job

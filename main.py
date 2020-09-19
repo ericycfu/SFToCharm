@@ -24,19 +24,23 @@ async def get_sf_information():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
 
-    tempaccounts = await sf_lib.get_all_objects_of_type(SFAccount)
+    print('getting tempaccounts')
+    tempaccounts = await sf_lib.get_all_objects_of_type(SFTempAccount)
     print(len(tempaccounts))
 
     #for tempaccount in tempaccounts:
     #   print(tempaccount)
 
-    '''
+    print('upserting tempaccount')
     new_tempaccounts = []
     x = SFTempAccount()
     x.Name__c = "Fu, Eric"
     new_tempaccounts.append(x)
-    await sf_lib.perform_bulk_upsert(new_tempaccounts)
-    '''
+    saved_tempaccounts = await sf_lib.perform_bulk_upsert(new_tempaccounts)
+    for tempaccount in saved_tempaccounts:
+        print(tempaccount)
+
+
     '''
     new_accounts = []
     y = SFAccount()

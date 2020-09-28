@@ -2,7 +2,6 @@
 
 import csv
 
-#maps a csv to a list of objects with the csv columns as the attribute names
 def csv_to_objects(csv_file, object):
     """Converts csv to objects
 
@@ -26,8 +25,21 @@ def csv_to_objects(csv_file, object):
         res.append(instance)
     return res
 
-#takes in a list of objects, returns csv
-#expects all objects to be the same/have same attributes.
+def get_object_ids(objects):
+    """Gets csv of only object ids
+
+    Accepts anything that has an Id attribute. Uses LF (\n) as the line ending, not CLRF (\r\n)
+
+    Args:
+        objects (list(obj)): list of objects with Ids
+    Returns:
+        str: csv string with only one Id column
+    """
+    res = ["Id"]
+    for object in objects:
+        res.append(getattr(object, "Id"))
+    return "\n".join(res)
+
 def objects_to_csv(objects):
     """Converts objects to a csv string.
     

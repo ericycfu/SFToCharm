@@ -1,7 +1,7 @@
 '''Async Wrapper for the Salesforce API'''
 import aiohttp
 import asyncio
-from salesforce.csvhelper import csv_to_objects, objects_to_csv, process_sf_response
+from salesforce.csvhelper import csv_to_objects, objects_to_csv, process_sf_response, get_object_ids
 
 class SalesForceSession():
     """Represents a connection to a specific Salesforce Instance"""
@@ -148,8 +148,47 @@ class SalesForceSession():
 
     #TODO: implement this
     async def perform_bulk_delete(self, objects):
-        pass
 
+        #create csv
+        csv_string = get_object_ids(objects)
+
+
+        #create job
+        object_class = objects[0].__class__
+        job_id = await self.create_job(object_class, 'delete')
+
+        #upload csv data to job
+        upload_url = self.instance_url + f"/services/data/v{self.api_version}/jobs/ingest/{job_id}/batches/"
+        headers = {'Content-Type': 'text/csv', 'Accept': 'application/json'}
+        async with self.session.put(upload_url, data = csv_string, headers = headers) as response:
+            assert response.status == 201 #data was succesfully received.
+
+        #close job
+        await self.close_job(job_id)
+
+        #check job status and results
+        monitor_url = self.instance_url + f'/services/data/v{self.api_version}/jobs/ingest/{job_id}'
+        while True:
+            async with self.session.get(monitor_url) as response:
+                r = await response.json()
+                status = r['state']
+                print(status)
+                if status not in ['JobComplete', 'Failed']:
+                    await asyncio.sleep(2)
+                elif status in ['Failed', 'Aborted']:
+                    #not raising exception here because we can still get data of which records were succesfully processed
+                    print("something went wrong with job")
+                    await self.get_failed_job(job_id)
+                    break
+                elif status == 'JobComplete':
+                    break
+
+        #get processed jobs:
+        results_url = self.instance_url + f'/services/data/v{self.api_version}/jobs/ingest/{job_id}/successfulResults/'
+        async with self.session.get(results_url) as response:
+            r = await response.text()
+            print(r)
+            #objects should be deleted so there is nothing to return
 
     async def create_job(self, object, operation):
         """Creates a job

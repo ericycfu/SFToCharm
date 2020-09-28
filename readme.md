@@ -43,7 +43,7 @@ new_accounts = await sf_lib.perform_bulk_upsert(accounts)
 new_accounts contains the same account objects, but with the Id field now containing the Id Salesforce assigns to the record.
 ## TODO
 
- - Implement bulk delete
+ - Handle failed records for jobs
  - Implement custom mapping for attributes
  - Implement custom external ID
 ## Dependencies

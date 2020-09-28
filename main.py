@@ -20,6 +20,7 @@ def main():
     charm_members = loop.run_until_complete(get_charm_patients())
     print('done grabbing member info')
     
+    """
     #navigate to page to add patients
     global driver
     driver = webdriver.Firefox()
@@ -32,12 +33,23 @@ def main():
         add_member(member)
 
     log_out()
+    """
+
+
 
 #TODO: Validate information, change formats of real information: capitalization of names, dates in wrong format, gender is all capitalized 
 async def get_charm_patients():
     sf_lib = SalesForceSession(client_id, client_secret, username, password)
     await sf_lib.get_token()
 
+    objects = []
+    x = SFTempAccount()
+    x.Id ="a1O5A000004ilTpUAI"
+    objects.append(x)
+    await sf_lib.perform_bulk_delete(objects)
+    
+
+    """
     accounts = await sf_lib.get_all_objects_of_type(SFAccount)
     for account in accounts:
         print(account)
@@ -75,6 +87,7 @@ async def get_charm_patients():
     await sf_lib.close_session()
     charm_members.insert(0, CharmPatient('Eric','Fu', '06-11-19', 'Male', '4403192041', 'eric.fu@bowtiemedical.com'))
     return charm_members
+    """
 
 
 def login():
